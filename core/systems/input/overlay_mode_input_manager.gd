@@ -116,92 +116,22 @@ func _input(event: InputEvent) -> void:
 		_audio_input(event)
 		return
 
-	# Handle guide action release events
+	# End Guide+B even when Guide is released before B.
 	if event.is_action_released("ogui_guide_action"):
-		logger.debug("Additional action as guide is released.")
-		# Steam OSK
-		if event.is_action_released("ogui_north_ov"):
-			action_release(dbus_path, "ogui_osk_ov")
-			get_viewport().set_input_as_handled()
-			return
-
-		# Steam QAM
-		if event.is_action_released("ogui_south_ov"):
-			action_release(dbus_path, "ogui_qam_ov")
-			get_viewport().set_input_as_handled()
-			return
-
-		# Steam Video Capture
-		if event.is_action_released("ogui_west_ov"):
-			action_release(dbus_path, "ogui_vc_ov")
-			get_viewport().set_input_as_handled()
-			return
-
-		# Steam Screenshot
-		if event.is_action_released("ogui_rb_ov"):
-			action_release(dbus_path, "ogui_sc_ov")
-			get_viewport().set_input_as_handled()
-			return
-
-		# Quick Bar
-		if event.is_action_released("ogui_east_ov"):
-			action_release(dbus_path, "ogui_qb_ov")
-			get_viewport().set_input_as_handled()
-			return
-
-	# Handle inputs when the guide button is being held
-	if Input.is_action_pressed("ogui_guide_ov"):
-		# Prevent ALL input from propagating if guide is held!
+		action_release(dbus_path, "ogui_qb_ov")
 		get_viewport().set_input_as_handled()
+		return
 
-		if event.is_pressed():
-			logger.debug("Additional action while guide wad pressed.")
-			# Steam OSK
-			if event.is_action_pressed("ogui_north_ov"):
-				action_press(dbus_path, "ogui_guide_action")
-				action_press(dbus_path, "ogui_osk_ov")
-
-			# Steam QAM
-			if event.is_action_pressed("ogui_south_ov"):
-				action_press(dbus_path, "ogui_guide_action")
-				action_press(dbus_path, "ogui_qam_ov")
-
-			# Steam Video Capture
-			if event.is_action_pressed("ogui_west_ov"):
-				action_press(dbus_path, "ogui_guide_action")
-				action_press(dbus_path, "ogui_vc_ov")
-
-			# Steam Screenshot
-			if event.is_action_pressed("ogui_rb_ov"):
-				action_press(dbus_path, "ogui_guide_action")
-				action_press(dbus_path, "ogui_sc_ov")
-
-			# Quick Bar
-			if event.is_action_pressed("ogui_east_ov"):
-				action_press(dbus_path, "ogui_guide_action")
-				action_press(dbus_path, "ogui_qb_ov")
-
-		elif event.is_released():
-			# Steam OSK
-			if event.is_action_released("ogui_north_ov"):
-				action_release(dbus_path, "ogui_osk_ov")
-
-			# Steam QAM
-			if event.is_action_released("ogui_south_ov"):
-				action_release(dbus_path, "ogui_qam_ov")
-
-			# Steam Video Capture
-			if event.is_action_released("ogui_west_ov"):
-				action_release(dbus_path, "ogui_vc_ov")
-
-			# Steam Screenshot
-			if event.is_action_pressed("ogui_rb_ov"):
-				action_release(dbus_path, "ogui_sc_ov")
-
-			# Quick Bar
-			if event.is_action_released("ogui_east_ov"):
-				action_release(dbus_path, "ogui_qb_ov")
-
+	# Only Guide+B belongs to OpenGamepadUI. InputPlumber handles other
+	# Guide combinations directly while the overlay is closed.
+	if Input.is_action_pressed("ogui_guide_ov"):
+		# Keep the existing input capture while navigating an open overlay.
+		get_viewport().set_input_as_handled()
+		if event.is_action_pressed("ogui_east_ov"):
+			action_press(dbus_path, "ogui_guide_action")
+			action_press(dbus_path, "ogui_qb_ov")
+		elif event.is_action_released("ogui_east_ov"):
+			action_release(dbus_path, "ogui_qb_ov")
 		return
 
 	# Handle events in the UI while it is open.
@@ -257,7 +187,7 @@ func _find_focus() -> Node:
 
 
 ## Handle guide button events and determine whether this is a guide action
-## (e.g. guide + A to open the Quick Bar), or if it's just a normal guide button press.
+## (Guide+B to open the Quick Bar), or if it's just a normal guide button press.
 func _guide_input(event: InputEvent) -> void:
 	var dbus_path := event.get_meta("dbus_path", "") as String
 	# Only act on release events
@@ -314,9 +244,6 @@ func _send_capability(event: InputEvent) -> bool:
 		logger.debug("Trigger Steam OSK")
 		capability = "Gamepad:Button:Keyboard"
 		_close_focused_window()
-	elif event.is_action("ogui_sc_ov"):
-		logger.debug("Trigger Steam Screenshot")
-		capability = "Gamepad:Button:Screenshot"
 
 	# Ignore empty events
 	if capability.is_empty():
